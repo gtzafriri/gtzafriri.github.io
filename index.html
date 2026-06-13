@@ -105,6 +105,19 @@
       --rule: #2b2b24;
     }
   }
+  /* Footnote reference markers */
+  sup a { text-decoration: none; }
+  sup a:hover { text-decoration: underline; }
+
+  /* Footnotes block */
+  .footnotes {
+    font-size: 0.82em;
+    color: var(--muted);
+    margin-bottom: 1.25rem;
+  }
+  .footnotes ol { margin: 0; padding-left: 1.25rem; }
+  .footnotes li { margin: 0.4rem 0; }
+  .fn-back { text-decoration: none; margin-left: 0.25rem; }
 </style>
 </head>
 <body>
@@ -112,16 +125,14 @@
     <header>
       <!-- To add a deeptune-style pronunciation, see the .ipa note in <style>:
            <h1>Your Name <span class="ipa">/jɔːr neɪm/</span></h1> -->
-      <h1>Your Name</h1>
-      <p class="tagline">Founder, researcher, and writer. I work on post-training models for science.</p>
+      <h1>Gideon Tzafriri</h1>
+      <p class="tagline">Post-training models for science.</p>
     </header>
 
     <section>
       <h2>About</h2>
-      <p>I'm a founder based in Boston. Most of my time goes to running my company, and I'm especially interested in how changing the way we currently test therapeutics
-      will pave the way toward longevity-focused therapeutics going mainstream.</p>
-      <p>Before this I studied Physics & CS at MIT. Before that, I won a medal at the International Chemistry Olympiad and did some work on drug-delivery 
-        platforms at the Wyss. Below are some things I've been thinking about. If any of it is useful, get in touch.</p>
+      <p>I'm a founder based in Boston. Most of my time goes to running my company<sup><a href="#fn1" id="ref1">1</a></sup>, and I'm especially interested in helping longevity-focused therapeutics go mainstream.</p>
+      <p>Before this I studied Physics & CS at MIT; before that, I dabbled in chemistry<sup><a href="#fn1" id="ref2">1</a></sup>. Below are some things I've been thinking about. If any of it is useful, get in touch.</p>
     </section>
 
     <section>
@@ -142,6 +153,16 @@
     </section>
 
     <hr />
+    <section class="footnotes">
+      <ol>
+        <li id="fn1">In stealth. <a href="#ref1" class="fn-back">↩</a></li>
+      </ol>
+    </section>
+    <section class="footnotes">
+      <ol>
+        <li id="fn1">Worst placement at IChO from US in 10 years.  <a href="#ref2" class="fn-back">↩</a></li>
+      </ol>
+    </section>
     <footer>
       <p>Under Construction</p>
     </footer>
