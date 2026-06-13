@@ -4,121 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Gideon Tzafriri</title>
-<style>
-  :root {
-    --bg: #fdfdfd;
-    --text: #111111;
-    --muted: #6a6a6a;
-    --link: #0000ee;          /* classic web blue */
-    --link-visited: #551a8b;  /* classic visited purple */
-    --rule: #e3e3e3;
-  }
-
-  html { -webkit-text-size-adjust: 100%; }
-
-  body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--text);
-    font-family: "Times New Roman", Times, Georgia, serif;
-    font-size: 21px;
-    line-height: 1.55;
-  }
-
-  main {
-    max-width: 40rem;
-    margin: 0 auto;
-    padding: 5rem 1.5rem 7rem;
-  }
-
-  /* Header */
-  h1 {
-    font-size: 2rem;
-    font-weight: 700;
-    margin: 0 0 0.3rem;
-    letter-spacing: -0.01em;
-  }
-  /* Optional deeptune-style pronunciation: uncomment to use
-  .ipa { font-style: italic; font-weight: 400; color: var(--muted); }
-  */
-  .tagline {
-    margin: 0 0 2.5rem;
-    color: var(--muted);
-  }
-
-  /* Section headings */
-  h2 {
-    font-size: 1.15rem;
-    font-weight: 700;
-    margin: 2.75rem 0 0.75rem;
-  }
-
-  p { margin: 0 0 1.1rem; }
-
-  /* Links */
-  a {
-    color: var(--link);
-    text-decoration: underline;
-    text-underline-offset: 2px;
-  }
-  a:visited { color: var(--link-visited); }
-  a:hover { text-decoration-thickness: 2px; }
-
-  ul { margin: 0 0 1.1rem; padding-left: 1.25rem; }
-  li { margin: 0.3rem 0; }
-
-  /* Essay list: title left, date pushed right, wraps gracefully on mobile */
-  .essays { list-style: none; padding: 0; margin: 0; }
-  .essays li {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 0.25rem 1rem;
-    padding: 0.3rem 0;
-  }
-  .essays .date { margin-left: auto; color: var(--muted); white-space: nowrap; }
-
-  /* Plain link list (elsewhere) */
-  .links { list-style: none; padding: 0; margin: 0; }
-  .links li { margin: 0.35rem 0; }
-
-  hr {
-    border: none;
-    border-top: 1px solid var(--rule);
-    margin: 4rem 0 2rem;
-  }
-
-  footer { color: var(--text); }
-
-  @media (max-width: 480px) {
-    body { font-size: 19px; }
-    main { padding: 3rem 1.25rem 5rem; }
-  }
-
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #14140f;
-      --text: #ececdf;
-      --muted: #9a978a;
-      --link: #8ab4ff;
-      --link-visited: #c7a8ff;
-      --rule: #2b2b24;
-    }
-  }
-  /* Footnote reference markers */
-  sup a { text-decoration: none; }
-  sup a:hover { text-decoration: underline; }
-
-  /* Footnotes block */
-  .footnotes {
-    font-size: 0.82em;
-    color: var(--muted);
-    margin-bottom: 1.25rem;
-  }
-  .footnotes ol { margin: 0; padding-left: 1.25rem; }
-  .footnotes li { margin: 0.4rem 0; }
-  .fn-back { text-decoration: none; margin-left: 0.25rem; }
-</style>
+<link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <main>
@@ -132,13 +18,13 @@
     <section>
       <h2>About</h2>
       <p>I'm a founder based in Boston. Most of my time goes to running my company<sup><a href="#fn1" id="ref1">1</a></sup>, and I'm especially interested in helping longevity-focused therapeutics go mainstream.</p>
-      <p>Before this I studied Physics & CS at MIT; before that, I dabbled in chemistry<sup><a href="#fn1" id="ref2">1</a></sup>. Below are some things I've been thinking about. If any of it is useful, get in touch.</p>
+      <p>Before this I studied Physics & CS at MIT; before that, I dabbled in chemistry. Below are some things I've been thinking about. If any of it is useful, get in touch.</p>
     </section>
 
     <section>
       <h2>Essays</h2>
       <ul class="essays">
-        <li><a href="#">Hello World</a><span class="date">June 13, 2026</span></li>
+        <li><a href="essays/hello-world.html">Hello World</a><span class="date">June 13, 2026</span></li>
       </ul>
     </section>
 
@@ -148,7 +34,6 @@
         <li><a href="mailto:giditz08@gmail.com">Email</a></li>
         <li><a href="https://github.com/gtzafriri">GitHub</a></li>
         <li><a href="https://x.com/giditz08">Twitter / X</a></li>
-        <li><a href="#">Google Scholar</a></li>
       </ul>
     </section>
 
@@ -158,13 +43,8 @@
         <li id="fn1">In stealth. <a href="#ref1" class="fn-back">↩</a></li>
       </ol>
     </section>
-    <section class="footnotes">
-      <ol>
-        <li id="fn1">Worst placement at IChO from US in 10 years.  <a href="#ref2" class="fn-back">↩</a></li>
-      </ol>
-    </section>
     <footer>
-      <p>Under Construction</p>
+      <p>👷Under Construction👷</p>
     </footer>
   </main>
 </body>
