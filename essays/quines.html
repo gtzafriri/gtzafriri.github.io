@@ -11,80 +11,55 @@
     <a class="back" href="../index.html">← Gideon Tzafriri</a>
 
     <article class="post">
-      <h1>Quines</h1>
-      <p class="post-meta">June 13, 2026</p>
+  <h1>Quines</h1>
+  <p class="post-meta">June 13, 2026</p>
 
-      <p>Any Turing-complete language admits a program called a <strong>quine</strong> that reproduces its own source, a consequence of Kleene's recursion theorem, and Python is no exception. Our goal is to build one by hand, on a single line of vanilla Python 3.</p>
+  <p>A <strong>quine</strong> is a program that prints its own source. This sounds easy until you try to write one from scratch. A program can print text, but the text it needs to print already contains the program that prints it. If we try to write the whole thing as a literal, the literal has to contain itself, which has to contain itself, and so on.</p>
 
-      <p>The line has to do two things at once: run a <code>print</code> that emits text, and carry the text it emits. The catch is that the text it emits is the line itself, which already contains the <code>print</code>. A plain literal cannot escape this regress. Writing <code>print('...the whole line...')</code> would need a string holding the entire line, including the string, including the string, without end. So the printed text cannot simply be the line; the line has to be rebuilt from something smaller.</p>
-      
-      <p>Two failed attempts pin down the mechanics before we get there. Say we have an expression <code>E</code> to print and we try to keep a second copy alongside the print:</p>
-      
-      <pre><code>print(E) + E</code></pre>
-      
-      <p>This fails twice, and both failures are informative. First, <code>E</code> is not a defined name, so Python raises a <code>NameError</code>: the payload has to be bound to a name before it can be used. Second, even with a value in hand the line is still broken, because <code>print</code> returns <code>None</code>:</p>
-      
-      <pre><code>print('quine') + 'quine'   # TypeError: NoneType + str</code></pre>
-      
-      <p>Printing is a side effect, not a value, so we cannot fuse a <code>print</code> call to anything else with an operator. The print and the payload have to be two separate statements, and Python lets us put two statements on one line with a semicolon:</p>
-      
-      <pre><code>S = 'quine'; print(S)</code></pre>
-      
-      <p>The first statement binds the payload to a name; the second prints something built from it. A dangling expression such as <code>; 'quine'</code> would be evaluated and thrown away, printing nothing in a script even though the REPL would echo it, so the second piece has to be a real <code>print</code> and the first a real binding.</p>
-      
-      <p>Now the actual problem comes into focus. If <code>print</code> emits a literal, it emits that literal and nothing of the code around it. To emit the surrounding code as well, the code's own text must live inside <code>S</code>, and the print must reassemble the whole line from it: the <code>S = '...'</code> wrapper, the literal form of <code>S</code>, and the <code>print</code> statement itself. In effect <code>S</code> gets rendered twice, once as data in its quoted form and once as code in the statements it spells out.</p>
-      
-      <p>That last requirement is where the difficulty really lives. Rendering <code>S</code> as a literal means re-emitting the quote that delimits it, and that quote cannot appear raw inside the string without closing it early. The same holds for any backslash, which Python reads as the start of an escape. Solving the quine reduces to exactly this: reproducing the delimiting quote and the backslashes from inside the string with the correct escaping.</p>
-      
-      <p>The way out is to stop trying to type the quote and the backslash in the print at all. If <code>S</code> already holds a quote character, written in the source as the escape <code>\'</code>, then that quote sits at a fixed position in the value of <code>S</code>, and we can pull it out by index. <code>S[k]</code> hands us a quote to drop anywhere in the output, and it never has to appear raw inside the expression. A backslash stored as <code>\\</code> works the same way. So the awkward characters get written once, inside the string where escaping is legal, and are reached everywhere else by position.</p>
-      
-      <p>Take the smallest layout that does this. Let the value of <code>S</code> begin with a backslash and then a quote, which in the source is written <code>'\\\'...'</code>: the opening <code>'</code>, then <code>\\</code> for the backslash at index 0, then <code>\'</code> for the quote at index 1. After those two characters, store the rest of what the line needs, namely the text <code>S = print(E); </code>, where <code>E</code> is the print expression we are about to write. Keep <code>E</code> free of quotes and backslashes, built only from letters, digits, brackets, colons, <code>+</code>, <code>*</code>, parentheses, semicolons and spaces. Then the text of <code>E</code> is identical whether it is read as data inside <code>S</code> or run as code, and the only characters that ever needed special handling are the quote and backslash we just isolated at the front.</p>
-      
-      <p>Now write the print by walking the target line from left to right and reading each piece off <code>S</code>:</p>
-      
-      <pre><code>E  =  S[2:6] + S[1] + S[0]*3 + S[1:] + S[1] + S[-2] + S[6:]</code></pre>
-      
-      <pre><code>S[2:6]   S =               the assignment head
-      S[1]     '                 opening quote of the literal
-      S[0]*3   \\\               three backslashes: the escaped backslash, then the first half of the escaped quote
-      S[1:]    'S = print(E);    the quote that completes the escape, then the stored body
-      S[1]     '                 closing quote
-      S[-2]    ;                 the statement separator
-      S[6:]    print(E);         the live statement</code></pre>
-      
-      <p>The economy of the trick is in the two slices that both return the body: the text of <code>E</code> is stored once inside <code>S</code>, yet it appears twice in the output, as the in-quote copy from <code>S[1:]</code> and as the live statement from <code>S[6:]</code>. Concatenating the seven pieces in this order spells the source line back exactly, and it closes the loop, since the expression we just wrote is precisely the body we stored in <code>S</code>. One detail makes the indices line up: the single trailing space appended to <code>S</code> puts the semicolon at index <code>-2</code>, so <code>S[-2]</code> lands on it rather than on the space. Put together, the whole thing is one line that prints itself:</p>
-      
-      <pre><code>S = '\\\'S = print(S[2:6] + S[1] + S[0]*3 + S[1:] + S[1] + S[-2] + S[6:]); ';print(S[2:6] + S[1] + S[0]*3 + S[1:] + S[1] + S[-2] + S[6:]); </code></pre>
-      
-      <p>Everything beyond this is cosmetic. Prepend any four characters in front of the backslash, say the leftover name <code>bob=</code>, and every index shifts: the backslash moves to <code>4</code>, the quote to <code>5</code>, the <code>S = </code> to indices <code>6</code> through <code>9</code>, and <code>print</code> to <code>10</code>. The padding is now part of the literal content, so it has to be reproduced too, which is the single extra term <code>S[:4]</code>. Nothing about the mechanism changes, and we arrive at the line we set out to build:</p>
-      
-      <pre><code>S = 'bob=\\\'S = print(S[6:10] + S[5] + S[:4] + S[4]*3 + S[5:] + S[5] + S[-2] + S[10:]); ';print(S[6:10] + S[5] + S[:4] + S[4]*3 + S[5:] + S[5] + S[-2] + S[10:]); </code></pre>
-      
-      <p>The line ends in a single trailing space, the same one appended to <code>S</code>, and that is what makes the printed copy match the source character for character. The name <code>bob</code> carries no meaning; any four characters would do, as long as a backslash lands at index 4 and a quote at index 5.</p>
-      
-      <p>Conceptually the finished line is a fixed point of the map "given a source, print that source." Kleene's recursion theorem promised such a fixed point exists in any language as expressive as Python. The slicing exhibits one by hand: store the program's own text once, render it back as both data and code, and manufacture the two characters, the quote and the backslash, that a string cannot state plainly about itself.</p>
-      
+  <p>So a quine cannot merely store its whole source as a string. It has to store a smaller description of itself and then rebuild the full source from that description. In Python, the smallest useful shape is two statements on one line:</p>
 
-      <!-- <p>You can use <a href="#">links</a>, <em>emphasis</em>, and
-        <code>inline code</code> exactly as on the rest of the site.</p>
+  <pre><code>S = ...;print(...)</code></pre>
 
-      <h2>A section</h2>
-      <p>Break longer pieces with section headings, and keep them sparse.</p>
+  <p>The first statement stores some text in <code>S</code>. The second prints the source line reconstructed from <code>S</code>.</p>
 
-      <blockquote>Set off a quote or an aside like this.</blockquote>
+  <p>There are two small traps here. First, the payload has to be bound to a name before the program can use it. A bare expression like this has no value for <code>E</code>:</p>
 
-      <pre><code>// fenced code blocks work too -->
-<!-- print("hello world")</code></pre>
+  <pre><code>print(E) + E</code></pre>
 
-      <p>Wrap up here.<sup><a href="#fn1" id="ref1">1</a></sup></p>
+  <p>Second, even if <code>E</code> existed, <code>print</code> would not help us build a larger expression, because <code>print</code> returns <code>None</code>:</p>
 
-      <hr />
-      <section class="footnotes">
-        <ol>
-          <li id="fn1">A footnote, if you want one. <a href="#ref1" class="fn-back">↩</a></li>
-        </ol>
-      </section> -->
-    </article>
+  <pre><code>print('quine') + 'quine'   # TypeError</code></pre>
+
+  <p>Printing is a side effect, not a string-producing operation. That is why the quine uses two statements: one to bind the payload, one to print the rebuilt source.</p>
+
+  <p>The real difficulty is not the word <code>print</code>. It is the quote. To print the source line, the program must print the quote marks around its own string literal. But a quote mark cannot appear raw inside a string delimited by the same quote mark, because it would close the string. The same problem appears with backslashes, which Python treats as escape characters.</p>
+
+  <p>The trick is to put those two awkward characters at known positions inside <code>S</code>. Let <code>S</code> begin with a backslash and then a quote. In source code, those two characters are written as <code>\\\'</code>: two backslashes to produce one backslash, then an escaped quote to produce one quote. After that, <code>S</code> stores the body of the program.</p>
+
+  <p>Here is the print expression:</p>
+
+  <pre><code>S[2:6] + S[1] + S[0]*3 + S[1:] + S[1] + S[-1] + S[6:]</code></pre>
+
+  <p>Read it from left to right as a recipe for printing the source line:</p>
+
+  <pre><code>S[2:6]   -> S =              the assignment head
+S[1]     -> '                the opening quote
+S[0]*3   -> \\\              the escaped backslash and escaped quote
+S[1:]    -> 'S = print...    the stored quote and program body
+S[1]     -> '                the closing quote
+S[-1]    -> ;                the statement separator
+S[6:]    -> print...         the live print statement</code></pre>
+
+  <p>The important part is that the body of the program appears twice. Inside the string, it is data. After the semicolon, it is code. The two copies come from the same stored text: <code>S[1:]</code> contributes the quoted copy, and <code>S[6:]</code> contributes the executable copy.</p>
+
+  <p>Putting the pieces together gives this one-line Python quine:</p>
+
+  <pre><code>S = '\\\'S = print(S[2:6] + S[1] + S[0]*3 + S[1:] + S[1] + S[-1] + S[6:]);';print(S[2:6] + S[1] + S[0]*3 + S[1:] + S[1] + S[-1] + S[6:]);</code></pre>
+
+  <p>When Python runs it, <code>S</code> contains a backslash, a quote, and the text of the print statement. The print statement then manufactures the exact source line: first the assignment, then a quoted representation of <code>S</code>, then the semicolon, then the print statement itself. The final newline comes from <code>print</code>, as usual.</p>
+
+  <p>Conceptually, the line is a fixed point: a program whose output is its own description. Kleene’s recursion theorem explains why such fixed points exist in sufficiently expressive formal systems. The slicing construction above is the hands-on version: store the program’s text once, use it twice, and synthesize the two characters a string cannot plainly say about itself.</p>
+</article>
 
     <footer>
       <p>✅Complete✅</p>
