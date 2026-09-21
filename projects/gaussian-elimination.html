@@ -5,6 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Gaussian Elimination Calculator · Gideon Tzafriri</title>
 <link rel="stylesheet" href="../style.css" />
+<style>
+  /* Back substitution */
+  .steps .eq {
+    margin: 0 0 0.2rem;
+    padding-left: 0.9rem;
+    font-variant-numeric: tabular-nums;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .steps .eq.from { color: var(--muted); }
+  .steps .eq .val { color: var(--link); }
+  .steps var { font-style: italic; }
+</style>
 </head>
 <body>
   <main>
@@ -55,7 +68,7 @@
       </ol>
 
       <p>This algorithm allows us to avoid division by zero or significant numerical rounding errors (although if the pivot element is near or at zero, 
-      the matrix is signular and the system admits either no solutions or infinitely many). Because we now have an upper triangular matrix, we can use
+      the matrix is singular and the system admits either no solutions or infinitely many). Because we now have an upper triangular matrix, we can use
       back substitution to solve for <var>x</var><sub><var>n</var></sub> first and then recursively work upward.</p>
   
       <p>The source is a direct port of a <a href="https://github.com/gtzafriri">short Python implementation</a>
@@ -65,17 +78,21 @@
 
 <script>
 const EPS = 1e-10;
+const TINY = 1e-12;
 const EXAMPLE = [[3, -1, -1, 5], [1, 1, 0, 0], [2, 0, -3, 2]];
 const $ = id => document.getElementById(id);
 const sizeSel = $('size'), grid = $('grid'), resultEl = $('result');
 const stepsEl = $('steps'), stepsSection = $('steps-section');
 
 function fmt(v) {
-  if (Math.abs(v) < 1e-12) v = 0;
+  if (Math.abs(v) < TINY) v = 0;
   const r = Math.round(v * 1e6) / 1e6;
   const s = Number.isInteger(r) ? String(r) : r.toFixed(4).replace(/0+$/, '').replace(/\.$/, '');
   return s.replace('-', '−');
 }
+const xv = k => `<var>x</var><sub>${k + 1}</sub>`;
+const paren = v => (v < -TINY ? `(${fmt(v)})` : fmt(v));
+const coef = a => (Math.abs(Math.abs(a) - 1) < TINY ? '' : fmt(Math.abs(a)));
 
 function reset() {
   resultEl.textContent = '';
@@ -116,12 +133,12 @@ function readGrid() {
   );
 }
 
-// Port of gaussian_elimination(A, b), recording each row operation.
+// Port of gaussian_elimination(A, b), recording each step.
 function solve(aug) {
   const n = aug.length;
   const M = aug.map(r => r.slice());
   const steps = [];
-  const record = (op, changed) => steps.push({ op, m: M.map(r => r.slice()), changed });
+  const record = (op, changed) => steps.push({ type: 'elim', op, m: M.map(r => r.slice()), changed });
 
   for (let col = 0; col < n; col++) {
     let pivotRow = col, maxVal = Math.abs(M[col][col]);
@@ -136,14 +153,14 @@ function solve(aug) {
       return { steps, error: `No usable pivot in column ${col + 1}: the matrix is singular, so there's no unique solution.` };
     }
     const pivot = M[col][col];
-    if (Math.abs(pivot - 1) > 1e-12) {
+    if (Math.abs(pivot - 1) > TINY) {
       M[col] = M[col].map(v => v / pivot);
       record(`R${col + 1} ← R${col + 1} ÷ ${fmt(pivot)}`, [col]);
     }
     const ops = [], changed = [];
     for (let row = col + 1; row < n; row++) {
       const factor = M[row][col];
-      if (Math.abs(factor) < 1e-12) continue;
+      if (Math.abs(factor) < TINY) continue;
       M[row] = M[row].map((v, j) => v - factor * M[col][j]);
       ops.push(`R${row + 1} ← R${row + 1} − ${fmt(factor)} R${col + 1}`);
       changed.push(row);
@@ -151,10 +168,19 @@ function solve(aug) {
     if (ops.length) record(ops.join('; '), changed);
   }
 
+  // Back substitution, recording the equation used for each unknown.
   const x = new Array(n).fill(0);
   for (let i = n - 1; i >= 0; i--) {
-    x[i] = M[i][n];
-    for (let j = i + 1; j < n; j++) x[i] -= M[i][j] * x[j];
+    const b = M[i][n];
+    const terms = [];
+    let v = b;
+    for (let j = i + 1; j < n; j++) {
+      if (Math.abs(M[i][j]) < TINY) continue;
+      terms.push({ a: M[i][j], j, xj: x[j] });
+      v -= M[i][j] * x[j];
+    }
+    x[i] = v;
+    steps.push({ type: 'back', i, b, terms, value: v });
   }
   return { x, steps };
 }
@@ -180,6 +206,27 @@ function matrixEl(m, changed) {
   return wrap;
 }
 
+function backStepHTML({ i, b, terms, value }) {
+  // Row as an equation: x_i + a x_j + ... = b
+  let rowEq = xv(i);
+  terms.forEach(({ a, j }) => { rowEq += ` ${a < 0 ? '−' : '+'} ${coef(a)}${xv(j)}`; });
+  rowEq += ` = ${fmt(b)}`;
+
+  // Solved: x_i = b − a(x_j) − ... = value
+  let solved = `${xv(i)} = `;
+  if (terms.length) {
+    solved += fmt(b);
+    terms.forEach(({ a, xj }) => { solved += ` ${a < 0 ? '+' : '−'} ${coef(a)}${paren(xj)}`; });
+    solved += ` = <span class="val">${fmt(value)}</span>`;
+  } else {
+    solved += `<span class="val">${fmt(value)}</span>`;
+  }
+
+  return `<p class="op">Solve R${i + 1} for ${xv(i)}</p>
+          <p class="eq from">${rowEq}</p>
+          <p class="eq">${solved}</p>`;
+}
+
 $('solve').addEventListener('click', () => {
   reset();
   let aug;
@@ -192,10 +239,14 @@ $('solve').addEventListener('click', () => {
   steps.forEach(s => {
     const li = document.createElement('li');
     const body = document.createElement('div');
-    const op = document.createElement('p');
-    op.className = 'op';
-    op.textContent = s.op;
-    body.append(op, matrixEl(s.m, s.changed));
+    if (s.type === 'back') {
+      body.innerHTML = backStepHTML(s);
+    } else {
+      const op = document.createElement('p');
+      op.className = 'op';
+      op.textContent = s.op;
+      body.append(op, matrixEl(s.m, s.changed));
+    }
     li.appendChild(body);
     stepsEl.appendChild(li);
   });
@@ -203,7 +254,7 @@ $('solve').addEventListener('click', () => {
 
   if (error) { resultEl.classList.add('error'); resultEl.textContent = error; return; }
   resultEl.innerHTML = x
-    .map((v, i) => `<span class="term"><var>x</var><sub>${i + 1}</sub> = ${fmt(v)}</span>`)
+    .map((v, i) => `<span class="term">${xv(i)} = ${fmt(v)}</span>`)
     .join('');
 });
 
