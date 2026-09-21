@@ -1,1 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Gaussian Elimination Calculator · Gideon Tzafriri</title>
+<link rel="stylesheet" href="../style.css" />
+</head>
+<body>
+  <main>
+    <a class="back" href="../index.html">← Home</a>
 
+    <article class="post">
+      <h1>Gaussian Elimination Calculator</h1>
+      <p class="post-meta">September 21, 2026</p>
+
+      <p>Enter a square system <var>A</var><var>x</var> = <var>b</var>. The column right of the bar is
+        <var>b</var>. Blank cells count as zero.</p>
+
+      <div class="calc-controls">
+        <label>Size
+          <select id="size" aria-label="Number of equations">
+            <option value="2">2 × 2</option>
+            <option value="3" selected>3 × 3</option>
+            <option value="4">4 × 4</option>
+            <option value="5">5 × 5</option>
+            <option value="6">6 × 6</option>
+          </select>
+        </label>
+        <button class="text-btn" id="example" type="button">Load example</button>
+        <button class="text-btn" id="clear" type="button">Clear</button>
+        <button class="text-btn solve" id="solve" type="button">Solve</button>
+      </div>
+
+      <div class="matrix-wrap">
+        <div class="matrix"><table id="grid"></table></div>
+      </div>
+
+      <p class="result" id="result" aria-live="polite"></p>
+
+      <section id="steps-section" hidden>
+        <h2>Working</h2>
+        <ol class="steps" id="steps"></ol>
+      </section>
+
+      <h2>How it works</h2>
+      <p>Column by column, the row with the largest entry (in absolute value) is swapped into the pivot
+        position. This is partial pivoting, and it keeps rounding error from blowing up when a pivot is small.
+        The pivot row is scaled so the pivot is 1, then subtracted from each row below to zero out the column.</p>
+      <p>Once the matrix is upper triangular, back substitution solves for <var>x</var><sub>n</sub> first and
+        works upward. A pivot below 10<sup>−10</sup> means the matrix is singular, so there's either no solution
+        or infinitely many.</p>
+      <p>The source is a direct port of a <a href="https://github.com/gtzafriri">short Python implementation</a>
+        using NumPy.</p>
+    </article>
+  </main>
+
+<script>
+const EPS = 1e-10;
+const EXAMPLE = [[3, -1, -1, 5], [1, 1, 0, 0], [2, 0, -3, 2]];
+const $ = id => document.getElementById(id);
+const sizeSel = $('size'), grid = $('grid'), resultEl = $('result');
+const stepsEl = $('steps'), stepsSection = $('steps-section');
+
+function fmt(v) {
+  if (Math.abs(v) < 1e-12) v = 0;
+  const r = Math.round(v * 1e6) / 1e6;
+  const s = Number.isInteger(r) ? String(r) : r.toFixed(4).replace(/0+$/, '').replace(/\.$/, '');
+  return s.replace('-', '−');
+}
+
+function reset() {
+  resultEl.textContent = '';
+  resultEl.className = 'result';
+  stepsSection.hidden = true;
+}
+
+function buildGrid(n, values) {
+  grid.innerHTML = '';
+  for (let i = 0; i < n; i++) {
+    const tr = grid.insertRow();
+    for (let j = 0; j <= n; j++) {
+      const td = tr.insertCell();
+      if (j === n) td.className = 'aug';
+      const input = document.createElement('input');
+      input.inputMode = 'decimal';
+      input.placeholder = '0';
+      input.autocomplete = 'off';
+      input.setAttribute('aria-label', j < n ? `A, row ${i + 1}, column ${j + 1}` : `b, row ${i + 1}`);
+      if (values) input.value = values[i][j];
+      td.appendChild(input);
+    }
+  }
+  reset();
+}
+
+function readGrid() {
+  return [...grid.rows].map((tr, i) =>
+    [...tr.querySelectorAll('input')].map((input, j) => {
+      const raw = input.value.trim().replace('−', '-');
+      const v = raw === '' ? 0 : Number(raw);
+      if (!Number.isFinite(v)) {
+        input.focus();
+        throw new Error(`Row ${i + 1}, column ${j + 1} isn't a number: “${input.value}”.`);
+      }
+      return v;
+    })
+  );
+}
+
+// Port of gaussian_elimination(A, b), recording each row operation.
+function solve(aug) {
+  const n = aug.length;
+  const M = aug.map(r => r.slice());
+  const steps = [];
+  const record = (op, changed) => steps.push({ op, m: M.map(r => r.slice()), changed });
+
+  for (let col = 0; col < n; col++) {
+    let pivotRow = col, maxVal = Math.abs(M[col][col]);
+    for (let row = col; row < n; row++) {
+      if (Math.abs(M[row][col]) > maxVal) { pivotRow = row; maxVal = Math.abs(M[row][col]); }
+    }
+    if (pivotRow !== col) {
+      [M[pivotRow], M[col]] = [M[col], M[pivotRow]];
+      record(`Swap R${col + 1} and R${pivotRow + 1}`, [col, pivotRow]);
+    }
+    if (Math.abs(M[col][col]) < EPS) {
+      return { steps, error: `No usable pivot in column ${col + 1}: the matrix is singular, so there's no unique solution.` };
+    }
+    const pivot = M[col][col];
+    if (Math.abs(pivot - 1) > 1e-12) {
+      M[col] = M[col].map(v => v / pivot);
+      record(`R${col + 1} ← R${col + 1} ÷ ${fmt(pivot)}`, [col]);
+    }
+    const ops = [], changed = [];
+    for (let row = col + 1; row < n; row++) {
+      const factor = M[row][col];
+      if (Math.abs(factor) < 1e-12) continue;
+      M[row] = M[row].map((v, j) => v - factor * M[col][j]);
+      ops.push(`R${row + 1} ← R${row + 1} − ${fmt(factor)} R${col + 1}`);
+      changed.push(row);
+    }
+    if (ops.length) record(ops.join('; '), changed);
+  }
+
+  const x = new Array(n).fill(0);
+  for (let i = n - 1; i >= 0; i--) {
+    x[i] = M[i][n];
+    for (let j = i + 1; j < n; j++) x[i] -= M[i][j] * x[j];
+  }
+  return { x, steps };
+}
+
+function matrixEl(m, changed) {
+  const wrap = document.createElement('div');
+  wrap.className = 'matrix-wrap';
+  const box = document.createElement('div');
+  box.className = 'matrix';
+  const t = document.createElement('table');
+  const n = m.length;
+  m.forEach((row, i) => {
+    const tr = t.insertRow();
+    if (changed.includes(i)) tr.className = 'changed';
+    row.forEach((v, j) => {
+      const td = tr.insertCell();
+      if (j === n) td.className = 'aug';
+      td.textContent = fmt(v);
+    });
+  });
+  box.appendChild(t);
+  wrap.appendChild(box);
+  return wrap;
+}
+
+$('solve').addEventListener('click', () => {
+  reset();
+  let aug;
+  try { aug = readGrid(); }
+  catch (e) { resultEl.classList.add('error'); resultEl.textContent = e.message; return; }
+
+  const { x, error, steps } = solve(aug);
+
+  stepsEl.innerHTML = '';
+  steps.forEach(s => {
+    const li = document.createElement('li');
+    const body = document.createElement('div');
+    const op = document.createElement('p');
+    op.className = 'op';
+    op.textContent = s.op;
+    body.append(op, matrixEl(s.m, s.changed));
+    li.appendChild(body);
+    stepsEl.appendChild(li);
+  });
+  stepsSection.hidden = steps.length === 0;
+
+  if (error) { resultEl.classList.add('error'); resultEl.textContent = error; return; }
+  resultEl.innerHTML = x
+    .map((v, i) => `<span class="term"><var>x</var><sub>${i + 1}</sub> = ${fmt(v)}</span>`)
+    .join('');
+});
+
+sizeSel.addEventListener('change', () => buildGrid(Number(sizeSel.value)));
+$('clear').addEventListener('click', () => buildGrid(grid.rows.length));
+$('example').addEventListener('click', () => { sizeSel.value = '3'; buildGrid(3, EXAMPLE); });
+grid.addEventListener('keydown', e => { if (e.key === 'Enter') $('solve').click(); });
+
+buildGrid(3, EXAMPLE);
+</script>
+</body>
+</html>
