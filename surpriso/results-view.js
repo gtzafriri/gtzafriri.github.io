@@ -1,0 +1,19 @@
+const escapeHtml=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+export function resultsView(round,stats){
+  if(!stats)return '<section class="community-results" aria-label="Player results"><p>Player results are unavailable right now.</p><button class="quiet" data-action="retry-results">Try again</button></section>';
+  const replay=stats.counted?'':'<p class="score-note">Practice round. Only your first attempt on this quote counts in the community results.</p>';
+  if(round.status!=='won')return `<section class="community-results success-rate" aria-label="Player results"><strong>${stats.successRate===null?'—':`${Math.round(stats.successRate*100)}%`}</strong><p>${stats.attempts?'of players got this quote right.':'No completed attempts yet.'}</p><p class="score-note">${stats.attempts.toLocaleString()} ${stats.attempts===1?'first attempt':'first attempts'}${stats.counted?' · including yours':''}</p>${replay}</section>`;
+  const d=stats.distribution;
+  if(!d||!d.samples)return `<section class="community-results"><h2>How you compared</h2><p>No correct first attempts yet.</p><p class="score-note">Your score: ${round.bits.toFixed(2)} bits.</p>${replay}</section>`;
+  const otherCorrect=d.otherSamples,otherTied=d.tied;
+  const comparison=!otherCorrect?'You’re the first player to solve this quote.':`You used fewer bits than ${d.higher} of ${otherCorrect} other successful ${otherCorrect===1?'player':'players'}.${otherTied?` ${otherTied} ${otherTied===1?'player tied':'players tied'} your score.`:''}`;
+  const width=620,height=270,left=36,right=16,top=76,bottom=215,plotWidth=width-left-right,plotHeight=bottom-top;
+  const maxCount=Math.max(1,...d.bins.map(b=>b.count)),maxBits=d.bins.at(-1).to,barWidth=plotWidth/d.bins.length;
+  const marker=left+Math.min(1,d.yourBits/maxBits)*plotWidth,anchor=marker>width-125?'end':marker<125?'start':'middle';
+  const bars=d.bins.map((b,i)=>{
+    const h=b.count/maxCount*plotHeight,contains=d.yourBits>=b.from&&d.yourBits<b.to;
+    return `<g><rect x="${left+i*barWidth+3}" y="${bottom-h}" width="${Math.max(1,barWidth-6)}" height="${h}" rx="2" fill="${contains?'#93c5fd':'#d1d5db'}"><title>${b.from}–${b.to} bits: ${b.count} correct ${b.count===1?'answer':'answers'}</title></rect>${b.count?`<text x="${left+(i+.5)*barWidth}" y="${Math.max(top-5,bottom-h-7)}" text-anchor="middle">${b.count}</text>`:''}<text x="${left+i*barWidth}" y="${bottom+24}" text-anchor="middle">${b.from}</text></g>`;
+  }).join('');
+  const accessible=`Correct answers by clue bits. ${d.bins.map(b=>`${b.from} to ${b.to} bits: ${b.count}`).join('; ')}. You used ${d.yourBits.toFixed(2)} bits.`;
+  return `<section class="community-results" aria-label="Player results"><div class="results-heading"><h2>How you compared</h2><span>${d.samples} correct ${d.samples===1?'answer':'answers'}</span></div><p class="comparison">${escapeHtml(comparison)}</p><svg class="histogram" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(accessible)}"><text x="${left}" y="14" class="chart-caption">Correct answers</text><line x1="${left}" x2="${width-right}" y1="${bottom}" y2="${bottom}" stroke="#9ca3af"/>${bars}<text x="${width-right}" y="${bottom+24}" text-anchor="middle">${maxBits}</text><text x="${left+plotWidth/2}" y="${height-1}" text-anchor="middle">Clue bits used · lower is better</text><line x1="${marker}" x2="${marker}" y1="54" y2="${bottom+3}" stroke="#2563eb" stroke-width="2" stroke-dasharray="4 3"/><text x="${marker}" y="49" text-anchor="${anchor}" class="you-label">You · ${d.yourBits.toFixed(2)} bits</text></svg><p class="score-note">Correct first attempts on this quote, using the same scoring version.${d.samples<10?' Early results — the distribution will grow as more people play.':''}</p>${replay}</section>`;
+}
