@@ -145,3 +145,96 @@ sup a:hover { text-decoration: underline; }
     --code-bg: rgba(255, 255, 255, 0.08);
   }
 }
+
+/* ---------- Calculator ---------- */
+.calc-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 1.5rem;
+  margin: 0 0 1.75rem;
+}
+.calc-controls label { color: var(--muted); }
+.calc-controls select {
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: none;
+  border-bottom: 1px solid var(--rule);
+  padding: 0 0.2rem;
+  margin-left: 0.35rem;
+  cursor: pointer;
+}
+.text-btn {
+  font: inherit;
+  color: var(--link);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.text-btn:hover { text-decoration-thickness: 2px; }
+.text-btn.solve { font-weight: 700; margin-left: auto; }
+.text-btn:focus-visible,
+.calc-controls select:focus-visible { outline: 2px solid var(--link); outline-offset: 3px; }
+
+.matrix-wrap { overflow-x: auto; padding: 0.25rem 0 0.5rem; }
+.matrix {
+  position: relative;
+  display: inline-block;
+  padding: 0.35rem 0.9rem;
+}
+.matrix::before,
+.matrix::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0.45rem;
+  border: 1.5px solid var(--text);
+}
+.matrix::before { left: 0; border-right: none; }
+.matrix::after { right: 0; border-left: none; }
+.matrix table { border-collapse: collapse; }
+.matrix td { padding: 0.15rem 0.45rem; text-align: right; font-variant-numeric: tabular-nums; }
+.matrix td.aug { border-left: 1px solid var(--muted); padding-left: 0.9rem; }
+
+.matrix input {
+  width: 3.4rem;
+  font: inherit;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--rule);
+  border-radius: 0;
+  padding: 0.05rem 0.1rem;
+}
+.matrix input:hover { border-bottom-color: var(--muted); }
+.matrix input:focus { outline: none; border-bottom: 2px solid var(--link); }
+.matrix input::placeholder { color: var(--rule); }
+
+.result { margin: 2rem 0 0; font-size: 1.2em; min-height: 1.6em; }
+.result .term { white-space: nowrap; margin-right: 1.5rem; }
+.result var { font-style: italic; }
+.result.error { color: var(--error, #f2a097); font-size: 1em; }
+
+.steps { list-style: none; padding: 0; margin: 0; counter-reset: step; }
+.steps li {
+  counter-increment: step;
+  display: grid;
+  grid-template-columns: 2rem 1fr;
+  margin: 0 0 1.5rem;
+}
+.steps li::before { content: counter(step) "."; color: var(--muted); }
+.steps .op { margin: 0 0 0.35rem; font-style: italic; }
+.steps .matrix { font-size: 0.85em; }
+.steps tr.changed td { color: var(--link); }
+
+@media (max-width: 480px) {
+  .text-btn.solve { margin-left: 0; }
+  .matrix input { width: 2.8rem; }
+}
