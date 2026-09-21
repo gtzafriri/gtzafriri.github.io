@@ -6,6 +6,32 @@ let config={quoteCount:77,sourceCount:61,scoringReady:true};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let playerStorage;try{playerStorage=window.localStorage;}catch{}
 const request=createApiClient({apiOrigin:document.querySelector('meta[name="surpriso-api"]')?.content??'',storage:playerStorage});
+const systemTheme=matchMedia('(prefers-color-scheme: dark)');
+let themePreference;try{themePreference=playerStorage?.getItem('surpriso-theme');}catch{}
+if(!['light','dark'].includes(themePreference))themePreference=null;
+function syncThemeButton(){
+  const button=root.querySelector('[data-action="theme"]');if(!button)return;
+  const next=document.documentElement.dataset.theme==='dark'?'light':'dark';
+  button.textContent=next==='dark'?'Dark mode':'Light mode';
+  button.setAttribute('aria-label',`Switch to ${next} mode`);
+}
+function applyTheme(theme){
+  document.documentElement.dataset.theme=theme;
+  document.querySelector('meta[name="theme-color"]').content=theme==='dark'?'#111827':'#ffffff';
+  syncThemeButton();
+}
+function toggleTheme(){
+  themePreference=document.documentElement.dataset.theme==='dark'?'light':'dark';
+  try{playerStorage?.setItem('surpriso-theme',themePreference);}catch{}
+  applyTheme(themePreference);
+}
+systemTheme.addEventListener('change',event=>{if(!themePreference)applyTheme(event.matches?'dark':'light');});
+window.addEventListener('storage',event=>{
+  if(event.key!==null&&event.key!=='surpriso-theme')return;
+  themePreference=['light','dark'].includes(event.newValue)?event.newValue:null;
+  applyTheme(themePreference||(systemTheme.matches?'dark':'light'));
+});
+applyTheme(themePreference||(systemTheme.matches?'dark':'light'));
 async function action(status,work){
   if(busy)return false;busy=true;error='';message=status;render();
   try{await work();return true;}catch(e){error=e.name==='TimeoutError'?'That took too long. Try again; your round is saved.':e.message;if(round)try{await restoreRound(round.id);}catch{}return false;}
@@ -29,7 +55,8 @@ async function retryResults(){return action('Loading player results…',async()=
 function tone(won=false){if(!sound)return;try{audioContext??=new AudioContext();audioContext.resume();const oscillator=audioContext.createOscillator(),gain=audioContext.createGain();oscillator.frequency.setValueAtTime(won?660:300,audioContext.currentTime);gain.gain.setValueAtTime(.025,audioContext.currentTime);gain.gain.exponentialRampToValueAtTime(.001,audioContext.currentTime+.14);oscillator.connect(gain);gain.connect(audioContext.destination);oscillator.start();oscillator.stop(audioContext.currentTime+.16);}catch{}}
 function feedback(){return error?`<p class="model-error" role="alert">${esc(error)}</p>`:busy?`<p class="model-feedback" role="status">${esc(message)}</p>`:'';}
 function render(focus=false){
-  root.innerHTML=`<a class="skip" href="#main">Skip to game</a><div class="shell"><header class="topbar"><a class="wordmark" href="#" aria-label="Surpriso home">Surpriso</a><div class="top-actions"><button class="quiet" data-action="rules">How to play</button><button class="quiet" data-action="sound" aria-label="${sound?'Mute':'Enable'} game sound" aria-pressed="${sound}">Sound ${sound?'on':'off'}</button></div></header><main id="main" class="main" aria-busy="${busy}">${view==='attract'?attract():view==='result'?result():play()}</main><footer class="footer"><span>${config.quoteCount} quotes · ${config.sourceCount} sources</span><button class="quiet" data-action="scoring">About the scoring</button></footer></div><dialog class="dialog" aria-labelledby="dialog-title"></dialog>`;
+  root.innerHTML=`<a class="skip" href="#main">Skip to game</a><div class="shell"><header class="topbar"><a class="wordmark" href="#" aria-label="Surpriso home">Surpriso</a><div class="top-actions"><button class="quiet" data-action="rules">How to play</button><button class="quiet" data-action="sound" aria-label="${sound?'Mute':'Enable'} game sound" aria-pressed="${sound}">Sound ${sound?'on':'off'}</button><button class="quiet" data-action="theme">Dark mode</button></div></header><main id="main" class="main" aria-busy="${busy}">${view==='attract'?attract():view==='result'?result():play()}</main><footer class="footer"><span>${config.quoteCount} quotes · ${config.sourceCount} sources</span><button class="quiet" data-action="scoring">About the scoring</button></footer></div><dialog class="dialog" aria-labelledby="dialog-title"></dialog>`;
+  syncThemeButton();root.querySelector('[data-action="theme"]').onclick=toggleTheme;
   root.querySelector('.wordmark').onclick=e=>{e.preventDefault();leaveRound(()=>{view='attract';render(true);});};
   root.querySelector('[data-action="rules"]').onclick=()=>showInfo('rules');
   root.querySelector('[data-action="scoring"]').onclick=()=>showInfo('scoring');
