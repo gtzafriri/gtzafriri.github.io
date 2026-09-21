@@ -12,10 +12,10 @@
 
     <article class="post">
       <h1>Gaussian Elimination Calculator</h1>
-      <p class="post-meta">September 21, 2026</p>
+      <p class="post-meta">July 6, 2025</p>
 
-      <p>Enter a square system <var>A</var><var>x</var> = <var>b</var>. The column right of the bar is
-        <var>b</var>. Blank cells count as zero.</p>
+      <p>Enter a square system <var>A</var><var>x</var> = <var>b</var> by writing the <var>n × n</var> matrix <var>A</var> into the first <var>n</var> columns,
+        and the <var>n × 1</var> vector <var>b</var> into the rightmost column. Blank cells count as zero.</p>
 
       <div class="calc-controls">
         <label>Size
@@ -44,12 +44,20 @@
       </section>
 
       <h2>How it works</h2>
-      <p>Column by column, the row with the largest entry (in absolute value) is swapped into the pivot
-        position. This is partial pivoting, and it keeps rounding error from blowing up when a pivot is small.
-        The pivot row is scaled so the pivot is 1, then subtracted from each row below to zero out the column.</p>
-      <p>Once the matrix is upper triangular, back substitution solves for <var>x</var><sub>n</sub> first and
-        works upward. A pivot below 10<sup>−10</sup> means the matrix is singular, so there's either no solution
-        or infinitely many.</p>
+      <p>This is an implementation of Gaussian elimination, which you can read about <a href="https://en.wikipedia.org/wiki/Gaussian_elimination">here</a>. 
+        We first transform the augmented matrix <var>[A | b]</var> into row echelon form using partial pivoting. Stepwise,</p>
+      <ol>
+        <li>Starting from the top-left, we loop through each (row, column) pair along the diagonal of the augmented matrix.</li>
+        <li>Each iteration, we search through rows below us along our column.</li>
+        <li>After finding the row with the highest seen entry by magnitude, we swap with that entire row.</li>
+        <li>To normalize, we divide the (new) current row by the pivot element.</li>
+        <li>Finally, to eliminate, we subtract multiples of the current row from all rows below to zero out our column.</li>
+      </ol>
+
+      <p>This algorithm allows us to avoid division by zero or significant numerical rounding errors (although if the pivot element is near or at zero, 
+      the matrix is signular and the system admits either no solutions or infinitely many). Because we now have an upper triangular matrix, we can use
+      back substitution to solve for <var>x</var><sub>n</sub> first and then recursively work upward.</p>
+  
       <p>The source is a direct port of a <a href="https://github.com/gtzafriri">short Python implementation</a>
         using NumPy.</p>
     </article>
